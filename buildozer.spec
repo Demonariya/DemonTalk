@@ -9,7 +9,7 @@ source.include_exts = py,png,jpg,kv,atlas,json,ttf,ogg,wav,html,css,js
 
 version = 1.0.0
 
-requirements = python3,kivy,sqlite3
+requirements = python3,kivy==2.3.0,sqlite3
 
 orientation = portrait
 fullscreen = 0
@@ -31,7 +31,7 @@ android.gradle_dependencies = com.google.android.material:material:1.9.0
 
 android.allow_backup = True
 
-p4a.branch = master
+p4a.branch = stable
 
 [buildozer]
 log_level = 2
