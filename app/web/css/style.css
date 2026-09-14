@@ -2,17 +2,6 @@
    Dark glassmorphism + electric neon accents + premium mobile-first
    Design System Foundation + Component Styles */
 
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Share+Tech+Mono&display=swap');
-
-/* Material Symbols */
-.material-symbols-outlined {
-  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
-  vertical-align: middle;
-}
-.material-symbols-outlined.filled {
-  font-variation-settings: 'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24;
-}
-
 /* ============================================================
    DESIGN SYSTEM FOUNDATION
    ============================================================ */
@@ -834,11 +823,9 @@ html, body {
   transition: var(--transition-fast);
 }
 
-.info-icon { font-size: var(--fs-md); }
+.info-icon { width: 18px; height: 18px; color: var(--text-2); flex-shrink: 0; }
 
 .info-icon.signal {
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
   color: var(--acid);
   letter-spacing: -1px;
 }
@@ -1466,11 +1453,13 @@ html, body {
 }
 
 .nav-icon {
-  font-size: var(--fs-xl);
+  width: 24px;
+  height: 24px;
   color: var(--text-3);
   will-change: color, filter;
   transition: var(--transition-normal);
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .nav-label {
@@ -1587,7 +1576,7 @@ html, body {
   .modal { padding: var(--space-4-5); }
   .bottom-nav { padding: var(--space-1) 0 calc(var(--safe-bottom) + var(--space-1)); }
   .nav-btn { padding: var(--space-1) var(--space-2); min-width: 48px; }
-  .nav-icon { font-size: var(--fs-lg); }
+  .nav-icon { width: 20px; height: 20px; }
   .nav-label { font-size: 9px; }
   .waveform-container { height: 36px; }
 }
