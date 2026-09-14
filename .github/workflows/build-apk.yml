@@ -41,9 +41,7 @@ jobs:
             unzip \
             openjdk-17-jdk \
             lld \
-            clang \
-            cmake \
-            libshaderc-dev
+            clang
 
       - name: Install Buildozer
         run: |
