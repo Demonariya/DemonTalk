@@ -1,18 +1,15 @@
-"""Local communication encryption."""
+"""Local communication encryption - stdlib only (no cryptography package)."""
 import os
 import hashlib
 import hmac
 import struct
 import secrets
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import padding
 from app.utils.logger import setup_logger
 
 log = setup_logger('Crypto')
 
 KEY_SIZE = 32
-NONCE_SIZE = 12
-TAG_SIZE = 16
+NONCE_SIZE = 16
 
 
 def generate_device_id():
@@ -28,23 +25,38 @@ def derive_key(shared_secret: bytes, salt: bytes = b'demontalk_v1') -> bytes:
     return hashlib.pbkdf2_hmac('sha256', shared_secret, salt, 100000, dklen=KEY_SIZE)
 
 
+def _xor_crypt(key: bytes, data: bytes) -> bytes:
+    """XOR stream cipher with HKDF-like key expansion."""
+    out = bytearray()
+    for i in range(len(data)):
+        block_idx = i // KEY_SIZE
+        ki = hashlib.sha256(key + block_idx.to_bytes(4, 'big')).digest()
+        out.append(data[i] ^ ki[i % KEY_SIZE])
+    return bytes(out)
+
+
 def encrypt_message(key: bytes, plaintext: bytes) -> bytes:
     nonce = secrets.token_bytes(NONCE_SIZE)
-    cipher = Cipher(algorithms.AES(key), modes.GCM(nonce))
-    encryptor = cipher.encryptor()
-    ciphertext = encryptor.update(plaintext) + encryptor.finalize()
-    return nonce + ciphertext + encryptor.tag
+    # Derive per-message key
+    msg_key = hashlib.sha256(key + nonce).digest()
+    ciphertext = _xor_crypt(msg_key, plaintext)
+    # HMAC for authentication
+    tag = hmac.new(key, nonce + ciphertext, hashlib.sha256).digest()[:16]
+    return nonce + ciphertext + tag
 
 
 def decrypt_message(key: bytes, data: bytes) -> bytes:
-    if len(data) < NONCE_SIZE + TAG_SIZE:
+    if len(data) < NONCE_SIZE + 16:
         raise ValueError("Invalid encrypted data")
     nonce = data[:NONCE_SIZE]
-    tag = data[-TAG_SIZE:]
-    ciphertext = data[NONCE_SIZE:-TAG_SIZE]
-    cipher = Cipher(algorithms.AES(key), modes.GCM(nonce, tag))
-    decryptor = cipher.decryptor()
-    return decryptor.update(ciphertext) + decryptor.finalize()
+    tag = data[-16:]
+    ciphertext = data[NONCE_SIZE:-16]
+    # Verify HMAC
+    expected = hmac.new(key, nonce + ciphertext, hashlib.sha256).digest()[:16]
+    if not hmac.compare_digest(tag, expected):
+        raise ValueError("Authentication failed")
+    msg_key = hashlib.sha256(key + nonce).digest()
+    return _xor_crypt(msg_key, ciphertext)
 
 
 def compute_hmac(key: bytes, data: bytes) -> bytes:
