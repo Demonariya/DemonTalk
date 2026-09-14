@@ -20,17 +20,43 @@ class WebBridge:
         self.service.on('receive_level', lambda lvl: self._push('receive_level', {'level': lvl}))
         self.service.on('message_received', lambda sid, sn, msg, ch: self._push('message_received', {'sender_id': sid, 'sender_name': sn, 'message': msg, 'channel_id': ch}))
         self.service.on('device_found', lambda did, name, ip, info: self._push('device_found', {'device_id': did, 'name': name, 'ip': ip}))
-        self.service.on('peer_connected', lambda ip, port: self._push('peer_connected', {'ip': ip, 'port': port}))
-        self.service.on('peer_disconnected', lambda pid: self._push('peer_disconnected', {'peer_id': pid}))
+        self.service.on('peer_connected', lambda ip, port: self._push_peer_count())
+        self.service.on('peer_disconnected', lambda pid: self._push_peer_count())
         self.service.on('state_changed', lambda state: self._push('state_changed', {'state': state}))
         self.service.on('emergency', lambda sid, sn, msg: self._push('emergency', {'sender_id': sid, 'sender_name': sn, 'message': msg}))
 
+    def _push_peer_count(self):
+        count = self.service.peer_count
+        self._push('peer_connected', {'count': count})
+
     def _push(self, event, data):
         try:
-            js = f"App.onEvent('{event}', '{json.dumps(data).replace(chr(39), chr(92)+chr(39))}')"
-            self.webview.evaluate_js(js)
+            json_str = json.dumps(data)
+            # Escape for JS single-quoted string
+            json_str = json_str.replace('\\', '\\\\').replace("'", "\\'").replace('\n', ' ')
+            js = f"Bridge._onEvent('{event}', '{json_str}')"
+            self._eval_js(js)
         except Exception as e:
             log.error(f"Push error: {e}")
+
+    def _eval_js(self, js):
+        if self.webview is None:
+            return
+        try:
+            # Android WebView via pyjnius
+            from jnius import autoclass, cast
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            activity = PythonActivity.mActivity
+            wv = self.webview
+            activity.runOnUiThread(
+                lambda: wv.evaluateJavascript(js, None)
+            )
+        except Exception:
+            try:
+                # Fallback: direct call
+                self.webview.evaluateJavascript(js, None)
+            except Exception as e:
+                log.debug(f"eval_js fallback error: {e}")
 
     def handle(self, payload_json: str) -> str:
         try:
@@ -92,7 +118,7 @@ class WebBridge:
         return result
 
     def _scan_devices(self):
-        self.service.net.udp._send_broadcast()
+        self.service.net.udp.send_heartbeat()
 
     def _connect_device(self, ip, port=37023):
         return self.service.connect_to_device(ip, port)

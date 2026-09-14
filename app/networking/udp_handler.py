@@ -154,7 +154,7 @@ class UDPHandler:
         elif pkt.ptype == PacketType.TEXT_MESSAGE:
             try:
                 meta = __import__('json').loads(pkt.payload)
-                self._emit('text_message', pkt.source_id, pkt.source_name, meta.get('msg', ''), ip)
+                self._emit('text_message', pkt.source_id, pkt.source_name, meta.get('msg', ''), meta.get('ch', ''), ip)
             except Exception:
                 pass
         elif pkt.ptype == PacketType.HEARTBEAT:

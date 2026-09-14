@@ -237,8 +237,12 @@ def run_desktop():
 
 
 if __name__ == '__main__':
-    from kivy.utils import platform
-    if platform == 'android':
+    try:
+        from kivy.utils import platform as _plat
+        _is_android = (_plat == 'android')
+    except ImportError:
+        _is_android = False
+    if _is_android:
         run_android()
     else:
         run_desktop()

@@ -456,7 +456,7 @@ const App = {
       const list = this._dom.deviceList;
       const empty = this._dom.deviceEmpty;
       list.innerHTML = '';
-      if (!devices || !devices.length) { empty.style.display = ''; return; }
+      if (!devices || !Object.keys(devices).length) { empty.style.display = ''; return; }
       empty.style.display = 'none';
       const frag = document.createDocumentFragment();
       const devArr = Object.values(devices);
@@ -645,13 +645,32 @@ const App = {
     this.txLevels = new Float32Array(32);
     this.rxLevels = new Float32Array(32);
     this._animRunning = false;
+    // Cache bound function to avoid per-frame allocation
+    this._drawWaveformsBound = this._drawWaveforms.bind(this);
+    // Polyfill roundRect for older WebViews
+    if (this.txCtx && !this.txCtx.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+        const rad = typeof r === 'number' ? r : (r?.[0] || 0);
+        this.beginPath();
+        this.moveTo(x + rad, y);
+        this.lineTo(x + w - rad, y);
+        this.arcTo(x + w, y, x + w, y + rad, rad);
+        this.lineTo(x + w, y + h - rad);
+        this.arcTo(x + w, y + h, x + w - rad, y + h, rad);
+        this.lineTo(x + rad, y + h);
+        this.arcTo(x, y + h, x, y + h - rad, rad);
+        this.lineTo(x, y + rad);
+        this.arcTo(x, y, x + rad, y, rad);
+        this.closePath();
+      };
+    }
     this._startWaveformLoop();
   },
 
   _startWaveformLoop() {
     if (this._animRunning) return;
     this._animRunning = true;
-    this._animFrame = requestAnimationFrame(this._drawWaveforms.bind(this));
+    this._animFrame = requestAnimationFrame(this._drawWaveformsBound);
   },
 
   _drawWaveforms() {
@@ -669,7 +688,7 @@ const App = {
     // Idle detection: stop loop when waveforms fully decayed
     if (anyActive || this.isTransmitting || this.isReceiving || this._waveformDirty) {
       this._waveformDirty = false;
-      this._animFrame = requestAnimationFrame(this._drawWaveforms.bind(this));
+      this._animFrame = requestAnimationFrame(this._drawWaveformsBound);
     } else {
       this._animRunning = false;
     }

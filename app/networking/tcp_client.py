@@ -119,7 +119,7 @@ class TCPClient:
                 elif msg_type == 'voice_data':
                     import base64
                     audio = base64.b64decode(msg.get('audio', ''))
-                    self._emit('voice_data', msg.get('sender_id', ''), audio)
+                    self._emit('voice_data', msg.get('sender_id', ''), msg.get('sender_name', ''), audio)
                 elif msg_type == 'voice_stop':
                     self._emit('voice_stop', msg.get('sender_id', ''))
                 else:
