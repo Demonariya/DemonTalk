@@ -55,6 +55,7 @@ class ConnectionService:
         self.net.on('state_changed', self._on_state_changed)
         self.net.on('peer_connected', self._on_peer_connected)
         self.net.on('peer_disconnected', self._on_peer_disconnected)
+        self.recorder.on('audio_chunk', self._on_audio_chunk)
 
     def start(self):
         if self._running:
@@ -80,7 +81,6 @@ class ConnectionService:
         self._transmitting = True
         self._emit('transmitting_started')
         self.player.stop()
-        self.recorder.on('audio_chunk', self._on_audio_chunk)
         self.recorder.start()
         log.info("Transmitting started")
 

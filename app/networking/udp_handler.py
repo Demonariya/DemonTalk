@@ -35,6 +35,18 @@ class UDPHandler:
         if self._running:
             return
         self._running = True
+        # Initialize voice socket early so send methods work immediately
+        try:
+            self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            except AttributeError:
+                pass
+            self._sock.settimeout(1.0)
+            self._sock.bind(('', VOICE_PORT))
+        except OSError as e:
+            log.warning(f"Voice socket init failed: {e}")
         t = threading.Thread(target=self._discovery_loop, daemon=True, name='udp-discovery')
         t.start()
         self._threads.append(t)

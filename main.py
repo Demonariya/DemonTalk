@@ -6,7 +6,6 @@ import os
 import sys
 import json
 import threading
-import mimetypes
 
 sys.path.insert(0, os.path.dirname(__file__))
 os.environ.setdefault('KIVY_LOG_LEVEL', 'warning')
