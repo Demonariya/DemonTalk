@@ -71,9 +71,10 @@ jobs:
 
       - name: Build APK (debug)
         run: |
-          rm -rf .buildozer/android/platform/build-*
-          yes | buildozer android debug 2>&1 || true
-          ls -la bin/ 2>/dev/null || echo "No bin directory"
+          yes | buildozer android debug
+        timeout-minutes: 180
+        env:
+          BUILDOZER_WARN_ON_ROOT: "0"
         timeout-minutes: 180
         env:
           BUILDOZER_WARN_ON_ROOT: "0"
