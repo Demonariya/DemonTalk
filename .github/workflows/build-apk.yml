@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,10 +20,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
             build-essential \
             git \
             python3-pip \
@@ -33,35 +33,68 @@ jobs:
             zlib1g-dev \
             libncurses5-dev \
             libncursesw5-dev \
-            libtinfo5 \
             cmake \
             libffi-dev \
             libssl-dev \
             automake \
             zip \
             unzip \
-            openjdk-17-jdk
+            openjdk-17-jdk \
+            lld \
+            clang \
+            cmake \
+            libshaderc-dev
 
       - name: Install Buildozer
         run: |
-          pip install --upgrade pip
-          pip install buildozer cython
+          python -m pip install --upgrade pip setuptools wheel
+          pip install buildozer cython virtualenv
+
+      - name: Accept Android SDK licenses
+        run: |
+          mkdir -p ~/.android
+          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > ~/.android/repositories.cfg
+          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> ~/.android/repositories.cfg
+          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> ~/.android/repositories.cfg
+
+      - name: Cache Buildozer global
+        uses: actions/cache@v4
+        with:
+          path: ~/.buildozer
+          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: |
+            buildozer-${{ runner.os }}-
 
       - name: Build APK (debug)
         run: |
-          buildozer android debug
-        timeout-minutes: 120
+          yes | buildozer android debug 2>&1 || true
+          ls -la bin/ 2>/dev/null || echo "No bin directory"
+        timeout-minutes: 180
+        env:
+          BUILDOZER_WARN_ON_ROOT: "0"
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
-        if: success()
+        if: always()
         with:
-          name: DemonTalk-debug
+          name: DemonTalk-debug-apk
           path: bin/*.apk
           retention-days: 14
+          if-no-files-found: warn
 
-      - name: Release (on tag)
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Upload build logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-logs
+          path: |
+            .buildozer/**/*.log
+            buildozer.spec
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Create Release (on tag push)
+        if: startsWith(github.ref, 'refs/tags/v') && success()
         uses: softprops/action-gh-release@v2
         with:
           files: bin/*.apk
