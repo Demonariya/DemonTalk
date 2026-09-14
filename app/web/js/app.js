@@ -315,7 +315,7 @@ const App = {
     btn.classList.add('tx');
     btn.classList.remove('rx', 'pressing');
     this._dom.pttLabel.textContent = 'TRANSMITTING';
-    this._dom.pttIcon.textContent = '⏹';
+    this._dom.pttIcon.textContent = 'stop';
     this._dom.statusDot.className = 'status-dot tx';
     this._dom.statusText.textContent = 'TRANSMITTING';
     this.vibrate(25);
@@ -328,7 +328,7 @@ const App = {
     const btn = this._dom.pttBtn;
     btn.classList.remove('tx');
     this._dom.pttLabel.textContent = 'READY';
-    this._dom.pttIcon.textContent = '▶';
+    this._dom.pttIcon.textContent = 'mic';
     this._dom.statusDot.className = 'status-dot online';
     this._dom.statusText.textContent = 'STANDBY';
     this.playTXStopSound();
