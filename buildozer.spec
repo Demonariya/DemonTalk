@@ -5,7 +5,7 @@ package.name = demontalk
 package.domain = com.demontalk
 
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,json,ttf,ogg,wav
+source.include_exts = py,png,jpg,kv,atlas,json,ttf,ogg,wav,html,css,js
 
 version = 1.0.0
 

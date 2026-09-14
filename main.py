@@ -1,196 +1,244 @@
 """DemonTalk - Offline Walkie-Talkie Application
 
-Entry point. Run with: python main.py
-Build for Android with: buildozer android debug
+WebView-based UI. Runs on Android via native WebView, desktop via HTTP server.
 """
 import os
 import sys
+import json
+import threading
+import mimetypes
 
 sys.path.insert(0, os.path.dirname(__file__))
-
 os.environ.setdefault('KIVY_LOG_LEVEL', 'warning')
-
-from kivy.config import Config
-Config.set('kivy', 'log_level', 'warning')
-Config.set('kivy', 'window_icon', '')
-Config.set('graphics', 'resizable', '0')
-Config.set('graphics', 'width', '390')
-Config.set('graphics', 'height', '844')
-Config.set('graphics', 'minimum_width', '320')
-Config.set('graphics', 'minimum_height', '568')
-
-from kivy.app import App
-from kivy.uix.screenmanager import ScreenManager, NoTransition
-from kivy.core.window import Window
-from kivy.metrics import dp
-from kivy.utils import rgba, platform
-
-if platform == 'android':
-    from android.permissions import request_permissions, Permission
-    request_permissions([
-        Permission.RECORD_AUDIO,
-        Permission.ACCESS_WIFI_STATE,
-        Permission.CHANGE_WIFI_STATE,
-        Permission.ACCESS_NETWORK_STATE,
-        Permission.ACCESS_FINE_LOCATION,
-        Permission.WAKE_LOCK,
-        Permission.FOREGROUND_SERVICE,
-        Permission.POST_NOTIFICATIONS,
-    ])
 
 from app.config import AppConfig, DATA_DIR
 from app.database.db import Database
 from app.services.connection_service import ConnectionService
+from app.web.bridge import WebBridge
 from app.utils.logger import setup_logger
 
 log = setup_logger('Main')
 
-from kivy.lang import Builder
-
-KV_FILES = [
-    'app/screens/radio_screen.kv',
-    'app/screens/channels_screen.kv',
-    'app/screens/chat_screen.kv',
-    'app/screens/devices_screen.kv',
-    'app/screens/settings_screen.kv',
-]
-
-for kv_path in KV_FILES:
-    full = os.path.join(os.path.dirname(__file__), kv_path)
-    if os.path.exists(full):
-        Builder.load_file(full)
-
-from app.screens.radio_screen import RadioScreen
-from app.screens.channels_screen import ChannelsScreen
-from app.screens.chat_screen import ChatScreen
-from app.screens.devices_screen import DevicesScreen
-from app.screens.settings_screen import SettingsScreen
+WEB_DIR = os.path.join(os.path.dirname(__file__), 'app', 'web')
 
 
-class DemonTalkNavButton:
-    pass
+def run_android():
+    """Run with native Android WebView."""
+    from kivy.app import App
+    from kivy.clock import Clock
+    from kivy.utils import platform
+
+    if platform == 'android':
+        from android.permissions import request_permissions, Permission
+        request_permissions([
+            Permission.RECORD_AUDIO, Permission.ACCESS_WIFI_STATE,
+            Permission.CHANGE_WIFI_STATE, Permission.ACCESS_NETWORK_STATE,
+            Permission.ACCESS_FINE_LOCATION, Permission.WAKE_LOCK,
+            Permission.FOREGROUND_SERVICE, Permission.POST_NOTIFICATIONS,
+        ])
+
+    from jnius import autoclass, cast
+    from android.runnable import run_on_ui_thread
+
+    WebView = autoclass('android.webkit.WebView')
+    WebViewClient = autoclass('android.webkit.WebViewClient')
+    WebChromeClient = autoclass('android.webkit.WebChromeClient')
+    WebSettings = autoclass('android.webkit.WebSettings')
+    Context = autoclass('android.content.Context')
+    PythonActivity = autoclass('org.kivy.android.PythonActivity')
+    ValueCallback = autoclass('android.webkit.ValueCallback')
+    JSInterface = autoclass('android.webkit.JavascriptInterface')
+    Uri = autoclass('android.net.Uri')
+    PythonJavaCallback = autoclass('org.jnius.PythonJavaCallback')
+
+    activity = PythonActivity.mActivity
+    current_app = App.get_running_app()
+
+    webview = [None]
+    bridge_ref = [None]
+
+    @run_on_ui_thread
+    def setup_webview():
+        wv = WebView(activity)
+        settings = wv.getSettings()
+        settings.setJavaScriptEnabled(True)
+        settings.setDomStorageEnabled(True)
+        settings.setAllowFileAccess(True)
+        settings.setAllowContentAccess(True)
+        settings.setMediaPlaybackRequiresUserGesture(False)
+        settings.setUseWideViewPort(True)
+        settings.setLoadWithOverviewMode(True)
+
+        wv.setWebViewClient(WebViewClient())
+        wv.setWebChromeClient(WebChromeClient())
+
+        # JavaScript interface
+        class PyBridge:
+            def __init__(self, br):
+                self._bridge = br
+
+            def call(self, payload):
+                try:
+                    result = self._bridge.handle(payload)
+                    wv.evaluateJavascript(
+                        f"Bridge._onResponse({json.loads(payload)['id']}, '{result.replace(chr(39), chr(92)+chr(39)).replace(chr(10), ' ')}')",
+                        None
+                    )
+                except Exception as e:
+                    log.error(f"JS bridge call error: {e}")
+
+        bridge = WebBridge(None)
+        bridge_ref[0] = bridge
+        bridge.webview = wv
+
+        js_interface = PyBridge(bridge)
+        wv.addJavascriptInterface(js_interface, "pyBridge")
+
+        activity.setContentView(wv)
+        webview[0] = wv
+
+        # Load HTML
+        html_path = f"file://{WEB_DIR}/index.html"
+        wv.loadUrl(html_path)
+        log.info("WebView loaded")
+
+        # Start connection service
+        bridge.service.start()
+
+        # Push events periodically
+        def push_loop():
+            while True:
+                try:
+                    if bridge_ref[0]:
+                        peers = bridge.service.net.get_connected_peers()
+                        count = len(peers)
+                        Clock.schedule_once(lambda dt, c=count: bridge._push('peer_connected', {'count': c}))
+                except Exception:
+                    pass
+                import time
+                time.sleep(3)
+
+        t = threading.Thread(target=push_loop, daemon=True)
+        t.start()
+
+    Clock.schedule_once(lambda dt: setup_webview(), 0.5)
+
+    class DemonTalkApp(App):
+        def build(self):
+            from kivy.uix.widget import Widget
+            return Widget()
+
+        def on_pause(self):
+            return True
+
+        def on_stop(self):
+            bridge = bridge_ref[0]
+            if bridge:
+                bridge.service.stop()
+
+    DemonTalkApp().run()
 
 
-class DemonTalkApp(App):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.title = 'DemonTalk'
-        self.config = AppConfig()
-        self.db = Database()
-        self.service = None
+def run_desktop():
+    """Run with local HTTP server for desktop testing."""
+    import webbrowser
+    from http.server import HTTPServer, SimpleHTTPRequestHandler
+    from urllib.parse import urlparse, parse_qs
 
-    def build(self):
-        Window.clearcolor = rgba('#0a0a0f')
+    bridge_ref = [None]
 
-        root = Builder.load_string('''
-BoxLayout:
-    orientation: 'vertical'
-    canvas.before:
-        Color:
-            rgba: rgba('#0a0a0f')
-        Rectangle:
-            pos: self.pos
-            size: self.size
+    class Handler(SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory=WEB_DIR, **kwargs)
 
-    BoxLayout:
-        id: screen_container
-        size_hint_y: 1
+        def do_GET(self):
+            if self.path == '/':
+                self.path = '/index.html'
+            super().do_GET()
 
-    BoxLayout:
-        id: nav_bar
-        size_hint_y: None
-        height: dp(64)
-        padding: [dp(4), dp(4)]
-        spacing: dp(2)
-        canvas.before:
-            Color:
-                rgba: rgba('#0e0e18')
-            Rectangle:
-                pos: self.pos
-                size: self.size
-            Color:
-                rgba: rgba('#2a2a3e')
-            Rectangle:
-                pos: self.x, self.y + self.height - dp(1)
-                size: self.width, dp(1)
-''')
+        def do_POST(self):
+            length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(length).decode()
+            result = bridge_ref[0].handle(body) if bridge_ref[0] else '{}'
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(result.encode())
 
-        sm = ScreenManager(transition=NoTransition())
-        sm.add_widget(RadioScreen(name='radio'))
-        sm.add_widget(ChannelsScreen(name='channels'))
-        sm.add_widget(ChatScreen(name='chat'))
-        sm.add_widget(DevicesScreen(name='devices'))
-        sm.add_widget(SettingsScreen(name='settings'))
-        root.ids.screen_container.add_widget(sm)
+        def log_message(self, format, *args):
+            pass  # Silence request logs
 
-        nav_items = [
-            ('📡', 'Radio', 'radio'),
-            ('📢', 'Channels', 'channels'),
-            ('💬', 'Chat', 'chat'),
-            ('📱', 'Devices', 'devices'),
-            ('⚙', 'Settings', 'settings'),
-        ]
+    bridge = WebBridge(None)
+    bridge_ref[0] = bridge
+    bridge.service.start()
 
-        nav_bar = root.ids.nav_bar
-        for icon, label, screen_name in nav_items:
-            btn = Builder.load_string(f'''
-BoxLayout:
-    orientation: 'vertical'
-    spacing: dp(2)
-    padding: [dp(4), dp(4)]
-    canvas.before:
-        Color:
-            rgba: rgba('#b44aff30') if self.active else rgba('#00000000')
-        RoundedRectangle:
-            pos: self.pos
-            size: self.size
-            radius: [dp(10)]
+    # Patch bridge to push via polling instead of WebView
+    bridge._push = lambda event, data: None  # Desktop uses polling
 
-    Label:
-        text: '{icon}'
-        font_size: '20sp'
+    # Add polling endpoint
+    _events = []
+    _original_push = bridge._push
 
-    Label:
-        text: '{label}'
-        font_size: '10sp'
-        color: rgba('#b44aff') if self.active else rgba('#555577')
-''')
-            btn.active = (screen_name == 'radio')
-            btn.screen_name = screen_name
-            btn.bind(on_touch_down=lambda inst, touch, sn=screen_name, b=btn:
-                     self._nav_touch(inst, touch, sn, root) if inst.collide_point(*touch.pos) else False)
-            nav_bar.add_widget(btn)
+    def capture_push(event, data):
+        _events.append({'event': event, 'data': data})
 
-        sm.current = 'radio'
-        self._nav_buttons = nav_bar.children
+    bridge._push = capture_push
 
-        self.service = ConnectionService()
-        self.service.start()
+    orig_do_post = Handler.do_POST
 
-        log.info("DemonTalk started")
-        return root
+    def enhanced_post(self):
+        nonlocal _events
+        length = int(self.headers.get('Content-Length', 0))
+        body = self.rfile.read(length).decode()
 
-    def _nav_touch(self, inst, touch, screen_name, root):
-        if not inst.collide_point(*touch.pos):
-            return False
-        sm = root.ids.screen_container.children[0]
-        sm.current = screen_name
-        for btn in root.ids.nav_bar.children:
-            btn.active = (btn.screen_name == screen_name)
-        return True
+        parsed = urlparse(body)
+        # Check if it's a poll request
+        try:
+            payload = json.loads(body)
+            if payload.get('method') == 'poll':
+                events = _events[:]
+                _events.clear()
+                result = json.dumps({'id': payload['id'], 'ok': True, 'data': events})
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(result.encode())
+                return
+        except (json.JSONDecodeError, KeyError):
+            pass
 
-    def on_pause(self):
-        return True
+        result = bridge_ref[0].handle(body) if bridge_ref[0] else '{}'
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(result.encode())
 
-    def on_resume(self):
-        pass
+    Handler.do_POST = enhanced_post
 
-    def on_stop(self):
-        if self.service:
-            self.service.stop()
-        self.db.close()
-        log.info("DemonTalk stopped")
+    port = 8080
+    server = HTTPServer(('127.0.0.1', port), Handler)
+    log.info(f"Desktop server at http://127.0.0.1:{port}")
+
+    # Add poll function to bridge for desktop
+    bridge._push = capture_push
+
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+
+    webbrowser.open(f'http://127.0.0.1:{port}')
+    log.info("Desktop mode running. Press Ctrl+C to stop.")
+    try:
+        threading.Event().wait()
+    except KeyboardInterrupt:
+        bridge.service.stop()
+        server.shutdown()
 
 
 if __name__ == '__main__':
-    DemonTalkApp().run()
+    from kivy.utils import platform
+    if platform == 'android':
+        run_android()
+    else:
+        run_desktop()
