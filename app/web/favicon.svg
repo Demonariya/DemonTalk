@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a1a"/>
+      <stop offset="100%" style="stop-color:#1a0a2e"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00e5ff"/>
+      <stop offset="100%" style="stop-color:#b44aff"/>
+    </linearGradient>
+    <filter id="neon">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <!-- Signal waves -->
+  <g filter="url(#neon)" opacity="0.8">
+    <path d="M64 32 Q80 48 64 64 Q48 48 64 32" fill="none" stroke="#00e5ff" stroke-width="3" stroke-linecap="round"/>
+    <path d="M64 24 Q88 44 64 64 Q40 44 64 24" fill="none" stroke="#00e5ff" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+    <path d="M64 16 Q96 40 64 64 Q32 40 64 16" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+  </g>
+  <!-- Center circle -->
+  <circle cx="64" cy="72" r="18" fill="none" stroke="url(#glow)" stroke-width="3" filter="url(#neon)"/>
+  <circle cx="64" cy="72" r="10" fill="url(#glow)" opacity="0.9"/>
+  <!-- Antenna -->
+  <line x1="64" y1="90" x2="64" y2="108" stroke="#b44aff" stroke-width="3" stroke-linecap="round" filter="url(#neon)"/>
+  <circle cx="64" cy="110" r="3" fill="#b44aff" filter="url(#neon)"/>
+  <!-- DT text -->
+  <text x="64" y="122" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#00e5ff" opacity="0.6">DT</text>
+</svg>

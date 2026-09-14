@@ -587,7 +587,6 @@ html, body {
   background: transparent;
   cursor: pointer;
   outline: none;
-  will-change: transform;
   -webkit-appearance: none;
   touch-action: manipulation;
   -webkit-touch-callout: none;
@@ -656,7 +655,7 @@ html, body {
   align-items: center;
   justify-content: center;
   gap: var(--space-1-5);
-  transition: transform var(--duration-fast) var(--ease-default);
+  transition: box-shadow var(--duration-fast) var(--ease-default);
   box-shadow: var(--shadow-inset-lg);
 }
 
@@ -1480,7 +1479,7 @@ html, body {
 
 .nav-btn.active .nav-label { color: var(--cyan); }
 .nav-btn.active::after { transform: translateX(-50%) scaleX(1); }
-.nav-btn:active { transform: scale(0.88); }
+.nav-btn:active { opacity: 0.7; }
 
 /* ============================================================
    KEYFRAME ANIMATIONS
