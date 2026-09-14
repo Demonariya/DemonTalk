@@ -36,6 +36,7 @@ def run_android():
 
     from jnius import autoclass, cast
     from android.runnable import run_on_ui_thread
+    from http.server import HTTPServer, SimpleHTTPRequestHandler
 
     PythonActivity = autoclass('org.kivy.android.PythonActivity')
     activity = PythonActivity.mActivity
@@ -48,6 +49,30 @@ def run_android():
 
     bridge = WebBridge(None)
     bridge_ref[0] = bridge
+
+    # Start local HTTP server
+    class Handler(SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory=WEB_DIR, **kwargs)
+        def do_GET(self):
+            if self.path == '/':
+                self.path = '/index.html'
+            super().do_GET()
+        def do_POST(self):
+            length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(length).decode()
+            result = bridge_ref[0].handle(body) if bridge_ref[0] else '{}'
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(result.encode())
+        def log_message(self, format, *args):
+            pass
+
+    server = HTTPServer(('127.0.0.1', 8080), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    log.info("Local HTTP server started on port 8080")
 
     @run_on_ui_thread
     def setup_webview():
@@ -84,9 +109,8 @@ def run_android():
         webview_ref[0] = wv
         bridge.webview = wv
 
-        # Load HTML
-        html_path = f"file://{WEB_DIR}/index.html"
-        wv.loadUrl(html_path)
+        # Load HTML from local server
+        wv.loadUrl("http://127.0.0.1:8080")
         log.info("WebView loaded")
 
         bridge.service.start()
