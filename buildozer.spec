@@ -31,7 +31,7 @@ android.gradle_dependencies = com.google.android.material:material:1.9.0
 
 android.allow_backup = True
 
-p4a.branch = develop
+p4a.branch = v2024.09.04
 
 [buildozer]
 log_level = 2
