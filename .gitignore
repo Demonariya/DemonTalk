@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Kivy
+*.kv~
+*.kv.default
+
+# Android build
+bin/
+obj/
+.gradle/
+local.properties
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Buildozer
+.buildozer/
+buildozer.spec.bak
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data
+data/
+*.db
+*.log
+settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node (gh npm)
+node_modules/

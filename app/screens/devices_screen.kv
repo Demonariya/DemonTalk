@@ -1,0 +1,88 @@
+#:import dp kivy.metrics.dp
+#:import rgba kivy.utils rgba
+
+<DevicesScreen>:
+    name: 'devices'
+    canvas.before:
+        Color:
+            rgba: rgba('#0a0a0f')
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: dp(16)
+        spacing: dp(12)
+
+        BoxLayout:
+            size_hint_y: None
+            height: dp(48)
+
+            Label:
+                text: 'DEVICES'
+                font_size: '22sp'
+                color: rgba('#e8e8f0')
+                bold: True
+                text_size: self.size
+                halign: 'left'
+                valign: 'middle'
+
+            Button:
+                size_hint_x: None
+                width: dp(100)
+                text: '🔍 SCAN'
+                font_size: '12sp'
+                bold: True
+                color: rgba('#b44aff')
+                background_color: rgba('#1a1a2e')
+                background_normal: ''
+                on_release: root.scan_devices()
+                canvas.before:
+                    Color:
+                        rgba: rgba('#1a1a2e')
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(10)]
+
+        # Status
+        BoxLayout:
+            size_hint_y: None
+            height: dp(32)
+            canvas.before:
+                Color:
+                    rgba: rgba('#12121a')
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(8)]
+
+            Label:
+                text: root.scan_status
+                font_size: '12sp'
+                color: rgba('#8888aa')
+                text_size: self.size
+                halign: 'center'
+                valign: 'middle'
+
+        ScrollView:
+            bar_color: rgba('#b44aff40')
+            bar_width: dp(3)
+
+            BoxLayout:
+                id: device_list
+                orientation: 'vertical'
+                spacing: dp(8)
+                size_hint_y: None
+                height: self.minimum_height
+                padding: [0, 0, 0, dp(80)]
+
+        Label:
+            id: empty_label
+            text: 'No devices found.\nTap SCAN to search.'
+            font_size: '15sp'
+            color: rgba('#555577')
+            halign: 'center'
+            valign: 'middle'
+            text_size: self.size

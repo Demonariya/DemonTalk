@@ -1,0 +1,39 @@
+#:import dp kivy.metrics.dp
+#:import rgba kivy.utils rgba
+
+<SettingsScreen>:
+    name: 'settings'
+    canvas.before:
+        Color:
+            rgba: rgba('#0a0a0f')
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: dp(16)
+        spacing: dp(8)
+
+        Label:
+            text: 'SETTINGS'
+            font_size: '22sp'
+            color: rgba('#e8e8f0')
+            bold: True
+            text_size: self.size
+            halign: 'left'
+            valign: 'middle'
+            size_hint_y: None
+            height: dp(48)
+
+        ScrollView:
+            bar_color: rgba('#b44aff40')
+            bar_width: dp(3)
+
+            BoxLayout:
+                id: settings_list
+                orientation: 'vertical'
+                spacing: dp(12)
+                size_hint_y: None
+                height: self.minimum_height
+                padding: [0, 0, 0, dp(80)]

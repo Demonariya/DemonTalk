@@ -1,0 +1,253 @@
+#:import dp kivy.metrics.dp
+#:import rgba kivy.utils rgba
+#:import PTTButton app.widgets.ptt_button.PTTButton
+#:import WaveformWidget app.widgets.waveform.WaveformWidget
+
+<RadioScreen>:
+    name: 'radio'
+    canvas.before:
+        Color:
+            rgba: rgba('#0a0a0f')
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: dp(16)
+        spacing: dp(8)
+
+        # Top status bar
+        BoxLayout:
+            size_hint_y: None
+            height: dp(48)
+            spacing: dp(8)
+
+            Label:
+                text: root.device_name
+                font_size: '16sp'
+                color: rgba('#e8e8f0')
+                text_size: self.size
+                halign: 'left'
+                valign: 'middle'
+                bold: True
+
+            Label:
+                text: root.channel_name
+                font_size: '13sp'
+                color: rgba('#b44aff')
+                text_size: self.size
+                halign: 'right'
+                valign: 'middle'
+
+        # Status indicators row
+        BoxLayout:
+            size_hint_y: None
+            height: dp(36)
+            spacing: dp(6)
+
+            canvas.before:
+                Color:
+                    rgba: rgba('#12121a')
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(12)]
+
+            Widget:
+                size_hint_x: None
+                width: dp(8)
+
+            # Connection dot
+            Widget:
+                size_hint_x: None
+                width: dp(12)
+                canvas:
+                    Color:
+                        rgba: root.status_color
+                    Ellipse:
+                        pos: self.center_x - dp(5), self.center_y - dp(5)
+                        size: dp(10), dp(10)
+
+            Label:
+                text: root.status_text
+                font_size: '12sp'
+                color: rgba('#8888aa')
+                text_size: self.size
+                halign: 'left'
+                valign: 'middle'
+
+            Label:
+                text: str(root.peer_count) + ' peers'
+                font_size: '12sp'
+                color: rgba('#00e676') if root.peer_count > 0 else rgba('#555577')
+                text_size: self.size
+                halign: 'right'
+                valign: 'middle'
+
+            Label:
+                text: root.network_type
+                font_size: '12sp'
+                color: rgba('#4a9fff')
+                text_size: self.size
+                halign: 'right'
+                valign: 'middle'
+
+            Widget:
+                size_hint_x: None
+                width: dp(8)
+
+        # Main PTT area
+        BoxLayout:
+            orientation: 'vertical'
+            padding: dp(20)
+
+            Widget:
+                size_hint_y: 0.15
+
+            # Waveform
+            WaveformWidget:
+                id: waveform
+                bar_color: rgba('#b44aff') if not root.is_transmitting else rgba('#ff1744')
+                size_hint_y: 0.08
+                bar_count: 32
+
+            Widget:
+                size_hint_y: 0.05
+
+            # PTT button centered
+            BoxLayout:
+                size_hint_y: 0.5
+
+                PTTButton:
+                    id: ptt
+                    size_hint: None, None
+                    size: dp(200), dp(200)
+                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                    is_transmitting: root.is_transmitting
+                    is_receiving: root.is_receiving
+                    on_press: root.on_ptt_press()
+                    on_release: root.on_ptt_release()
+
+            Widget:
+                size_hint_y: 0.05
+
+            # Bottom receive waveform
+            WaveformWidget:
+                id: receive_waveform
+                bar_color: rgba('#00b0ff')
+                size_hint_y: 0.06
+                bar_count: 32
+
+            Widget:
+                size_hint_y: 0.05
+
+        # Bottom info row
+        BoxLayout:
+            size_hint_y: None
+            height: dp(48)
+            spacing: dp(12)
+
+            # Mic indicator
+            BoxLayout:
+                canvas.before:
+                    Color:
+                        rgba: rgba('#1a1a2e')
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(10)]
+
+                Label:
+                    text: '🎤' if root.mic_enabled else '🔇'
+                    font_size: '16sp'
+                    size_hint_x: None
+                    width: dp(30)
+
+                Label:
+                    text: 'Mic'
+                    font_size: '11sp'
+                    color: rgba('#8888aa')
+
+            # Speaker indicator
+            BoxLayout:
+                canvas.before:
+                    Color:
+                        rgba: rgba('#1a1a2e')
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(10)]
+
+                Label:
+                    text: '🔊' if root.speaker_enabled else '🔈'
+                    font_size: '16sp'
+                    size_hint_x: None
+                    width: dp(30)
+
+                Label:
+                    text: 'Speaker'
+                    font_size: '11sp'
+                    color: rgba('#8888aa')
+
+            # Battery
+            BoxLayout:
+                canvas.before:
+                    Color:
+                        rgba: rgba('#1a1a2e')
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(10)]
+
+                Label:
+                    text: root.battery_icon
+                    font_size: '16sp'
+                    size_hint_x: None
+                    width: dp(30)
+
+                Label:
+                    text: str(root.battery_level) + '%'
+                    font_size: '11sp'
+                    color: rgba('#8888aa')
+
+            # Signal
+            BoxLayout:
+                canvas.before:
+                    Color:
+                        rgba: rgba('#1a1a2e')
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(10)]
+
+                Label:
+                    text: root.signal_bars
+                    font_size: '14sp'
+                    size_hint_x: None
+                    width: dp(30)
+                    color: rgba('#00e676')
+
+                Label:
+                    text: 'Signal'
+                    font_size: '11sp'
+                    color: rgba('#8888aa')
+
+        # Emergency button
+        Button:
+            size_hint_y: None
+            height: dp(44)
+            background_color: rgba('#ff1744')
+            background_normal: ''
+            text: '⚠ EMERGENCY'
+            font_size: '14sp'
+            bold: True
+            color: rgba('#ffffff')
+            on_release: root.on_emergency()
+            canvas.before:
+                Color:
+                    rgba: rgba('#ff174430')
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [dp(12)]

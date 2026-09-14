@@ -1,0 +1,102 @@
+#:import dp kivy.metrics.dp
+#:import rgba kivy.utils rgba
+
+<ChatScreen>:
+    name: 'chat'
+    canvas.before:
+        Color:
+            rgba: rgba('#0a0a0f')
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: dp(16)
+        spacing: dp(8)
+
+        # Header
+        BoxLayout:
+            size_hint_y: None
+            height: dp(48)
+
+            Label:
+                text: 'CHAT'
+                font_size: '22sp'
+                color: rgba('#e8e8f0')
+                bold: True
+                text_size: self.size
+                halign: 'left'
+                valign: 'middle'
+
+            Label:
+                text: root.channel_label
+                font_size: '13sp'
+                color: rgba('#8888aa')
+                text_size: self.size
+                halign: 'right'
+                valign: 'middle'
+
+        # Messages
+        ScrollView:
+            id: msg_scroll
+            bar_color: rgba('#b44aff40')
+            bar_width: dp(3)
+
+            BoxLayout:
+                id: message_list
+                orientation: 'vertical'
+                spacing: dp(6)
+                size_hint_y: None
+                height: self.minimum_height
+                padding: [0, dp(8), 0, dp(8)]
+
+        # Input area
+        BoxLayout:
+            size_hint_y: None
+            height: dp(56)
+            spacing: dp(8)
+
+            TextInput:
+                id: msg_input
+                hint_text: 'Type a message...'
+                multiline: False
+                size_hint_x: 0.75
+                background_color: rgba('#1a1a2e')
+                foreground_color: rgba('#e8e8f0')
+                hint_text_color: rgba('#555577')
+                cursor_color: rgba('#b44aff')
+                font_size: '15sp'
+                padding: [dp(12), dp(12)]
+                on_text_validate: root.send_message()
+
+            Button:
+                size_hint_x: 0.125
+                text: '🎤'
+                font_size: '20sp'
+                background_color: rgba('#1a1a2e')
+                background_normal: ''
+                on_release: root.start_voice_record()
+                canvas.before:
+                    Color:
+                        rgba: rgba('#1a1a2e')
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(14)]
+
+            Button:
+                size_hint_x: 0.125
+                text: '▶'
+                font_size: '18sp'
+                color: rgba('#ffffff')
+                background_color: rgba('#b44aff')
+                background_normal: ''
+                on_release: root.send_message()
+                canvas.before:
+                    Color:
+                        rgba: rgba('#b44aff')
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(14)]

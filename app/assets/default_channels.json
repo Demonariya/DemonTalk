@@ -1,0 +1,8 @@
+[
+    {"name": "General", "description": "General communication channel"},
+    {"name": "Team Alpha", "description": "Alpha team channel"},
+    {"name": "Team Bravo", "description": "Bravo team channel"},
+    {"name": "Emergency", "description": "Emergency communications"},
+    {"name": "Family", "description": "Family channel"},
+    {"name": "Gaming", "description": "Gaming coordination"}
+]
