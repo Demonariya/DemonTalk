@@ -160,11 +160,12 @@ class ConnectionManager:
             self.udp.send_voice(audio_data, channel_id)
 
     def send_text(self, message: str, channel_id: str = ''):
+        ch = channel_id or None
         if self.tcp_client.is_connected:
-            self.tcp_client.send_text(message, channel_id)
+            self.tcp_client.send_text(message, ch)
         else:
-            self.udp.send_text(message, channel_id)
-        self.db.add_message(self.device_id, self.device_name, message, channel_id=channel_id)
+            self.udp.send_text(message, ch)
+        self.db.add_message(self.device_id, self.device_name, message, channel_id=ch)
 
     def send_emergency(self, message: str = 'EMERGENCY'):
         self.udp.send_emergency(message)

@@ -151,7 +151,7 @@ class Database:
         self.execute("""
             INSERT OR REPLACE INTO devices (id, name, ip_address, port, connection_type, last_seen, first_seen)
             VALUES (?, ?, ?, ?, ?, ?, COALESCE((SELECT first_seen FROM devices WHERE id=?), ?))
-        """, (device_id, name, ip, port, connection_type, now, now, device_id, now))
+        """, (device_id, name, ip, port, connection_type, now, device_id, now))
 
     def update_device_seen(self, device_id, ip=None):
         now = datetime.utcnow().isoformat()

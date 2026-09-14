@@ -12,7 +12,14 @@ class WebBridge:
         self.webview = webview
         self.service = ConnectionService()
         self.config = AppConfig()
+        self._register_device()
         self._connect_events()
+
+    def _register_device(self):
+        """Ensure current device exists in devices table."""
+        did = self.service.net.device_id
+        name = self.config.get('device_name') or 'DemonTalk User'
+        self.service.db.add_device(did, name, '127.0.0.1')
 
     def _connect_events(self):
         self.service.on('voice_received', lambda sid, sn, ad: self._push('voice_received', {'sender_id': sid, 'sender_name': sn}))
@@ -82,7 +89,7 @@ class WebBridge:
         self.service.stop_transmitting()
 
     def _send_text(self, message, channel_id=''):
-        self.service.send_text(message, channel_id)
+        self.service.send_text(message, channel_id or None)
 
     def _send_emergency(self, message='EMERGENCY'):
         self.service.send_emergency(message)
