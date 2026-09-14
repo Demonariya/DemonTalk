@@ -27,9 +27,7 @@ android.archs = arm64-v8a
 android.release_artifact = apk
 android.debug_artifact = apk
 
-android.add_compile_options = sourceCompatibility=Version_11,targetCompatibility=Version_11
-
-android.gradle_dependencies = com.google.android.material:material:1.9.0
+android.add_compile_options = sourceCompatibility=JavaVersion.VERSION_11,targetCompatibility=JavaVersion.VERSION_11
 
 android.allow_backup = True
 
